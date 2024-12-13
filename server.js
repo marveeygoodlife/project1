@@ -1,44 +1,100 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const bodyparser = require('body-parser');
 const path = require('path');
-require('dotenv').config();
-
-const port = process.env.PORT || 3001;
-
-
-console.log("Port:", process.env.PORT);
-console.log("Mongo URI:", process.env.MONGO_URI);
-
 const app = express();
+const port = 3300;
 
-//serve static files
-app.use(express.static(__dirname));
+app.use(bodyparser.json());
+app.use(bodyparser.urlencoded({extended:true}));
+app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from the 'public' directory
 
-const db = mongoose.connection 
-
-//mongodb connection
-mongoose.set('debug', true);
-
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Connected to MongoDB successfully'))
-    .catch((error) => console.error('Error connecting to MongoDB:', error));
-
-
-//serve login form
-app.get('/login', (req,res)=>{
-    res.sendFile(path.join(__dirname, 'form.html'));
+// CORS Middleware (Global)
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  next();
 });
 
-// start server
+// MongoDB connection
+mongoose.connect('mongodb://127.0.0.1:27017/studentBD');
+const db = mongoose.connection;
 
-/* app.listen(port, (err) => {
-    console.log(`server started on port ${port}`);
-}); */
+db.on('error', () => { console.log('Connection failed'); });
+db.once('open', () => { console.log('Connection to database successful'); });
 
-app.listen(port, (err) => {
-    if (err) {
-        console.error('Failed to start the server:', err);
-        process.exit(1); // Exit the process with a failure code
+// User Schema and Model
+const userSchema = new mongoose.Schema({
+  firstname: String,
+  lastname: String,
+  email: String
+});
+const User = mongoose.model('User', userSchema);
+
+// POST route for adding a user
+app.post('/post', async (req, res) => {
+  try {
+    const { firstname, lastname, email } = req.body;
+
+    // Simple validation
+    if (!firstname || !lastname || !email) {
+      return res.status(400).send('Missing required fields');
     }
-    console.log(`Server started on port ${port}`);
+
+    const user = new User({ firstname, lastname, email });
+
+    // Save user to database
+    const savedUser = await user.save();
+    console.log('Record inserted successfully', savedUser);
+
+    // Send a success response
+    return res.status(200).json({ message: 'User saved successfully', user: savedUser });
+    
+  } catch (error) {
+    console.error("Error in /post route:", error);
+    return res.status(500).send('Internal Server Error');
+  }
+});
+
+// GET route to serve the form
+app.get('/', (req, res) => {
+  return res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Start server
+const server = app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
+});
+
+// Handle server errors
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+      console.error('Port 3300 is already in use. Please use a different port.');
+      process.exit(1);
+  }
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('Gracefully shutting down...');
+  mongoose.connection.close(() => {
+    console.log('MongoDB connection closed');
+    server.close(() => {
+      console.log('Server shut down gracefully');
+      process.exit(0);
+    });
+  });
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('There was an uncaught error', err);
+  process.exit(1); // Exit gracefully
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1); // Exit gracefully
 });

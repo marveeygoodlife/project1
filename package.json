@@ -7,13 +7,16 @@
     "start": "node server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Marveey Goodlife",
   "license": "ISC",
-  "description": "",
+  "description": "This a form website",
   "dependencies": {
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "mongoose": "^8.8.4",
     "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "mocha": "^11.0.1"
   }
 }
