@@ -1,3 +1,8 @@
 # .gitignore
 
 .env
+code.md
+.env*
+.flaskenv*
+!.env.project
+!.env.vault

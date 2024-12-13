@@ -35,6 +35,28 @@ app.get('/login', (req,res)=>{
     console.log(`server started on port ${port}`);
 }); */
 
+//parse form dtta
+
+// Enable parsing of URL-encoded data (important for form submissions)
+app.use(express.urlencoded({ extended: true }));
+
+// Define the login route to handle POST requests
+app.post('/login', (req, res) => {
+  console.log('Login request received:', req.body); // Log the request body
+
+  //  Process the login (e.g., authenticate the user)
+  const username = req.body.username;
+  const email = req.body.email;
+
+  if (username === 'user' && email === 'email') { // Replace with actual authentication logic
+    res.send('Login successful!');  // Send a success response
+  } else {
+    res.status(401).send('Login failed'); // Send an unauthorized response
+  }
+});
+
+
+
 app.listen(port, (err) => {
     if (err) {
         console.error('Failed to start the server:', err);
